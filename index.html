@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หวยรัฐบาล</title>
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#e9d5ff;
+  margin:0;
+  padding:15px;
+}
+.box{
+  max-width:420px;
+  margin:auto;
+  background:#e9d5ff;
+}
+h3{margin:5px 0}
+button{
+  border:0;
+  padding:10px 14px;
+  border-radius:4px;
+  margin:4px;
+  cursor:pointer;
+  font-weight:bold;
+}
+.yellow{background:#f4c542}
+.white{background:#fff}
+.purple{background:#7b00ff;color:white}
+.red{background:#d93030;color:white}
+.orange{background:#f6a623}
+input,textarea{
+  padding:10px;
+  border:1px solid #ccc;
+  border-radius:4px;
+  font-size:16px;
+}
+.row{display:flex;gap:6px;margin-top:8px}
+.row input{width:100%}
+.card{
+  background:white;
+  padding:10px;
+  margin-top:10px;
+  border-radius:6px;
+}
+.item{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px solid #ddd;
+  padding:8px 0;
+}
+.note{width:100%;height:45px}
+.total{
+  text-align:center;
+  font-size:20px;
+  font-weight:bold;
+  margin-top:10px;
+}
+.small{font-size:13px;color:#333}
+</style>
+</head>
+
+<body>
+<div class="box">
+  <h3>หวยรัฐบาล</h3>
+  <div class="small">ใส่เลขโพยและยอดแทง</div>
+
+  <div>
+    <button class="yellow" onclick="setType('2ตัวบน')">2 ตัวบน</button>
+    <button class="white" onclick="setType('3ตัวบน')">3 ตัวบน</button>
+    <button class="white" onclick="setType('3ตัวโต๊ด')">3 ตัวโต๊ด</button>
+    <button class="white" onclick="setType('2ตัวล่าง')">2 ตัวล่าง</button>
+    <button class="white" onclick="setType('6กลับ')">6 กลับ</button>
+  </div>
+
+  <div class="row">
+    <input id="num" placeholder="ใส่เลข">
+    <input id="amount" type="number" placeholder="ยอดแทง">
+    <button class="purple" onclick="addBill()">+ เพิ่มบิล</button>
+  </div>
+
+  <div class="card">
+    <b>รายการแทง</b>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <b>เลขที่ออก</b>
+    <div class="row">
+      <input id="top3" placeholder="3 ตัวบน">
+      <input id="bottom2" placeholder="2 ตัวล่าง">
+    </div>
+    <button class="orange" onclick="checkResult()">ตรวจหวย</button>
+    <button class="red" onclick="clearAll()">ล้างทั้งหมด</button>
+  </div>
+
+  <textarea class="note" placeholder="หมายเหตุ"></textarea>
+
+  <div class="total" id="summary">รวม 0.00 บาท</div>
+  <div class="card" id="result"></div>
+</div>
+
+<script>
+let type = "2ตัวบน";
+let bills = [];
+
+const payRate = {
+  "3ตัวบน": 450,
+  "3ตัวโต๊ด": 100,
+  "2ตัวบน": 70,
+  "2ตัวล่าง": 70,
+  "6กลับ": 70
+};
+
+function setType(t){
+  type = t;
+  alert("เลือก: " + t);
+}
+
+function addBill(){
+  let num = document.getElementById("num").value.trim();
+  let amount = Number(document.getElementById("amount").value);
+
+  if(!num || amount <= 0){
+    alert("ใส่เลขกับยอดแทงก่อนน้า");
+    return;
+  }
+
+  bills.push({type,num,amount});
+  document.getElementById("num").value = "";
+  document.getElementById("amount").value = "";
+  render();
+}
+
+function render(){
+  let html = "";
+  let total = 0;
+
+  bills.forEach((b,i)=>{
+    total += b.amount;
+    html += `
+      <div class="item">
+        <div>
+          <b>${b.type}</b><br>
+          เลข ${b.num} x ${b.amount}
+        </div>
+        <button class="red" onclick="delBill(${i})">ลบ</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+  document.getElementById("summary").innerText = "รวม " + total.toFixed(2) + " บาท";
+}
+
+function delBill(i){
+  bills.splice(i,1);
+  render();
+}
+
+function sortText(s){
+  return s.split("").sort().join("");
+}
+
+function checkResult(){
+  let top3 = document.getElementById("top3").value.trim();
+  let bottom2 = document.getElementById("bottom2").value.trim();
+  let top2 = top3.slice(-2);
+
+  let totalBet = 0;
+  let totalWin = 0;
+  let html = "<b>ผลตรวจ</b>";
+
+  bills.forEach(b=>{
+    totalBet += b.amount;
+    let win = false;
+
+    if(b.type === "3ตัวบน" && b.num === top3) win = true;
+    if(b.type === "3ตัวโต๊ด" && sortText(b.num) === sortText(top3)) win = true;
+    if(b.type === "2ตัวบน" && b.num === top2) win = true;
+    if(b.type === "2ตัวล่าง" && b.num === bottom2) win = true;
+    if(b.type === "6กลับ" && sortText(b.num) === sortText(top3)) win = true;
+
+    let prize = win ? b.amount * payRate[b.type] : 0;
+    totalWin += prize;
+
+    html += `
+      <div class="item">
+        <div>${b.type} ${b.num} แทง ${b.amount}</div>
+        <div>${win ? "ถูก +" + prize : "ไม่ถูก"}</div>
+      </div>
+    `;
+  });
+
+  let profit = totalBet - totalWin;
+
+  html += `
+    <hr>
+    ยอดแทงรวม: ${totalBet.toFixed(2)} บาท<br>
+    ต้องจ่ายลูกค้า: ${totalWin.toFixed(2)} บาท<br>
+    <b>${profit >= 0 ? "กำไร" : "ขาดทุน"}: ${Math.abs(profit).toFixed(2)} บาท</b>
+  `;
+
+  document.getElementById("result").innerHTML = html;
+}
+
+function clearAll(){
+  if(confirm("ล้างทั้งหมดใช่ไหม?")){
+    bills = [];
+    document.getElementById("result").innerHTML = "";
+    render();
+  }
+}
+</script>
+</body>
+</html>
